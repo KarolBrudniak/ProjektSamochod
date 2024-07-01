@@ -1,0 +1,7 @@
+Szybkość: 0 km/h
+Włączony bieg: 0
+Obroty silnika: 0 RPM
+Paliwo: 0
+Olej: Brak
+Silnik: Wyłączony
+Samochód porusza się: nie
