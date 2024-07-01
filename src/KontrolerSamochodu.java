@@ -1,6 +1,6 @@
-
 import java.io.*;
-import java.util.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 public class KontrolerSamochodu {
     private Silnik silnik;
@@ -16,6 +16,66 @@ public class KontrolerSamochodu {
         this.zasobySamochodu = zasobySamochodu;
         this.stanSamochodu = stanSamochodu;
     }
+
+    public void saveGuiStatusToFile(String filename) {
+        String status = wyswietlStatus();
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
+            writer.write(status);
+        } catch (IOException e) {
+            System.err.println("Error writing GUI status to file: " + e.getMessage());
+        }
+    }
+
+    public void loadAndApplyGuiStatus(String filename) {
+        try {
+            String data = new String(Files.readAllBytes(Paths.get(filename)));
+            applyStatusToObjects(data); // Aktualizacja obiektów na podstawie wczytanych danych
+        } catch (IOException e) {
+            System.err.println("Error reading GUI status from file: " + e.getMessage());
+        }
+    }
+
+    private void applyStatusToObjects(String data) {
+        String[] lines = data.split("\n");
+        for (String line : lines) {
+            String[] parts = line.split(": ");
+            if (parts.length < 2) continue; // Nieprawidłowy format linii
+            String key = parts[0].trim();
+            String value = parts[1].trim();
+
+            switch (key) {
+                case "Szybkość":
+                    stanSamochodu.ustawPredkosc(Integer.parseInt(value.replace(" km/h", "")));
+                    break;
+                case "Włączony bieg":
+                    skrzyniaBiegow.ustawBieg(Integer.parseInt(value));
+                    break;
+                case "Obroty silnika":
+                    silnik.ustawObroty(Integer.parseInt(value.replace(" RPM", "")));
+                    break;
+                case "Paliwo":
+                    zasobySamochodu.dolejPaliwo(Integer.parseInt(value));
+                    break;
+                case "Olej":
+                    zasobySamochodu.ustawOlej(value.equals("Jest"));
+                    break;
+                case "Silnik":
+                    if (value.equals("Włączony")) {
+                        silnik.wlacz();
+                    } else {
+                        silnik.wylacz();
+                    }
+                    break;
+                case "Samochód porusza się":
+                    stanSamochodu.ustawPoruszanie(value.equals("tak"));
+                    break;
+                default:
+                    // Nieznany klucz - ignoruj
+                    break;
+            }
+        }
+    }
+
 
     public void wlaczSilnik() {
         if (zasobySamochodu.pobierzPaliwo() <= 0 && !zasobySamochodu.czyJestOlej()) {
@@ -119,10 +179,9 @@ public class KontrolerSamochodu {
     }
 
     public String wyswietlError() {
-        String error = errorOutput;
-
-        return error;
+        return errorOutput;
     }
+
     public void dolejPaliwo(int ilosc) {
         zasobySamochodu.dolejPaliwo(ilosc);
         System.out.println("Dolewano " + ilosc + " jednostek paliwa. Aktualna ilość paliwa: " + zasobySamochodu.pobierzPaliwo());
@@ -134,60 +193,4 @@ public class KontrolerSamochodu {
         System.out.println("Dolewano olej. Aktualny stan: " + (zasobySamochodu.czyJestOlej() ? "Jest olej" : "Brak oleju"));
         errorOutput = ("Dolewano olej. Aktualny stan: " + (zasobySamochodu.czyJestOlej() ? "Jest olej" : "Brak oleju"));
     }
-    public void saveToJSON(String filePath) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
-            writer.write("{\n");
-            writer.write("\"silnik\": {\n");
-            writer.write("\"wlaczony\": " + silnik.czyDziala() + ",\n");
-            writer.write("\"obroty\": " + silnik.pobierzObroty() + "\n");
-            writer.write("},\n");
-            writer.write("\"skrzyniaBiegow\": {\n");
-            writer.write("\"bieg\": " + skrzyniaBiegow.pobierzBieg() + "\n");
-            writer.write("},\n");
-            writer.write("\"zasobySamochodu\": {\n");
-            writer.write("\"paliwo\": " + zasobySamochodu.pobierzPaliwo() + ",\n");
-            writer.write("\"olej\": " + zasobySamochodu.czyJestOlej() + "\n");
-            writer.write("},\n");
-            writer.write("\"stanSamochodu\": {\n");
-            writer.write("\"predkosc\": " + stanSamochodu.pobierzPredkosc() + ",\n");
-            writer.write("\"poruszaSie\": " + stanSamochodu.czyPoruszaSie() + "\n");
-            writer.write("}\n");
-            writer.write("}\n");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // Deserializacja z JSON
-    public void loadFromJSON(String filePath) {
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                line = line.trim();
-                String value = line.substring(line.indexOf(":") + 1).trim().replace(",", "").replace("\"", "").replace("}", "");
-                if (line.startsWith("\"wlaczony\":")) {
-                    if (Boolean.parseBoolean(value)) {
-                        silnik.wlacz();
-                    } else {
-                        silnik.wylacz();
-                    }
-                } else if (line.startsWith("\"obroty\":")) {
-                    silnik.ustawObroty(Integer.parseInt(value));
-                } else if (line.startsWith("\"bieg\":")) {
-                    skrzyniaBiegow.ustawBieg(Integer.parseInt(value));
-                } else if (line.startsWith("\"paliwo\":")) {
-                    zasobySamochodu.dolejPaliwo(Integer.parseInt(value));  // Zakładając istnienie metody ustawPaliwo
-                } else if (line.startsWith("\"olej\":")) {
-                    zasobySamochodu.ustawOlej(Boolean.parseBoolean(value));
-                } else if (line.startsWith("\"predkosc\":")) {
-                    stanSamochodu.ustawPredkosc(Integer.parseInt(value));
-                } else if (line.startsWith("\"poruszaSie\":")) {
-                    stanSamochodu.ustawPoruszanie(Boolean.parseBoolean(value));
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();  // Rozważ użycie loggera lub informowanie użytkownika GUI
-        }
-    }
 }
-
