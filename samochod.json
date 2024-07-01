@@ -1,0 +1,17 @@
+{
+"silnik": {
+"wlaczony": false,
+"obroty": 0
+},
+"skrzyniaBiegow": {
+"bieg": 0
+},
+"zasobySamochodu": {
+"paliwo": 0,
+"olej": false
+},
+"stanSamochodu": {
+"predkosc": 0,
+"poruszaSie": false
+}
+}
