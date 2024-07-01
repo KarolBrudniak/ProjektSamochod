@@ -1,6 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
-
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class SamochodGUI {
     private KontrolerSamochodu kontroler;
@@ -15,7 +16,7 @@ public class SamochodGUI {
     private void createAndShowGUI() {
         JFrame frame = new JFrame("Symulator Samochodu");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(600, 450);
+        frame.setSize(800, 600);
 
         // Główny panel
         JPanel rootPanel = new JPanel();
@@ -34,7 +35,7 @@ public class SamochodGUI {
 
         // Panel przycisków
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new GridLayout(4, 2));
+        buttonPanel.setLayout(new GridLayout(6, 2));
 
         JButton wlaczSilnikButton = new JButton("Włącz Silnik");
         wlaczSilnikButton.addActionListener(e -> {
@@ -99,6 +100,36 @@ public class SamochodGUI {
             updateStatus();
             updateError();
         });
+        JButton saveButton = new JButton("Zapisz dane");
+        saveButton.addActionListener(e -> {
+            try {
+                kontroler.saveToJSON("samochod.json");
+                JOptionPane.showMessageDialog(frame, "Dane zostały zapisane.", "Informacja", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(frame, "Błąd przy zapisywaniu danych: " + ex.getMessage(), "Błąd", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        // Przycisk ładowania danych z bazy
+        JButton loadButton = new JButton("Wczytaj dane");
+        loadButton.addActionListener(e -> {
+            try {
+                kontroler.loadFromJSON("samochod.json");
+                updateStatus();  // Aktualizacja statusu samochodu w GUI
+                updateError();   // Aktualizacja komunikatów o błędach
+                JOptionPane.showMessageDialog(frame, "Dane zostały wczytane.", "Informacja", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(frame, "Błąd przy wczytywaniu danych: " + ex.getMessage(), "Błąd", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        JButton exitButton = new JButton("Zakończ program");
+        exitButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                frame.dispose(); // Zamyka okno, ale nie kończy całego procesu, jeśli są inne wątki
+                System.exit(0); // Bezpieczne zakończenie programu, zamyka wszystkie wątki
+            }
+        });
 
         buttonPanel.add(wlaczSilnikButton);
         buttonPanel.add(wylaczSilnikButton);
@@ -108,10 +139,14 @@ public class SamochodGUI {
         buttonPanel.add(hamujButton);
         buttonPanel.add(dolejPaliwoButton);
         buttonPanel.add(dolejOlejButton);
+        buttonPanel.add(saveButton);
+        buttonPanel.add(loadButton);
+        buttonPanel.add(exitButton);
+
 
         // Dodanie komponentów do rootPanel
-        rootPanel.add(scrollPane, BorderLayout.CENTER);
-        rootPanel.add(scrollPane2, BorderLayout.EAST);
+        rootPanel.add(scrollPane, BorderLayout.NORTH);
+        rootPanel.add(scrollPane2, BorderLayout.CENTER);
         rootPanel.add(buttonPanel, BorderLayout.SOUTH);
 
         frame.add(rootPanel);

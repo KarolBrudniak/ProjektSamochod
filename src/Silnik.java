@@ -5,6 +5,7 @@ public class Silnik {
     public void wlacz() {
         wlaczony = true;
         obroty = 1000; // Początkowe obroty po włączeniu silnika
+
     }
 
     public void wylacz() {

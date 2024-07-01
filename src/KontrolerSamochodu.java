@@ -1,10 +1,14 @@
+
+import java.io.*;
+import java.util.*;
+
 public class KontrolerSamochodu {
     private Silnik silnik;
     private SkrzyniaBiegow skrzyniaBiegow;
     private ZasobySamochodu zasobySamochodu;
     private StanSamochodu stanSamochodu;
     private final int[] LIMITY_PREDKOSCI = {0, 20, 40, 60, 80, 100}; // Maksymalne prędkości dla biegów od 0 do 5
-    private String errorOutput = "Wszystko w porzadku.";
+    private String errorOutput = "";
 
     public KontrolerSamochodu(Silnik silnik, SkrzyniaBiegow skrzyniaBiegow, ZasobySamochodu zasobySamochodu, StanSamochodu stanSamochodu) {
         this.silnik = silnik;
@@ -14,12 +18,16 @@ public class KontrolerSamochodu {
     }
 
     public void wlaczSilnik() {
+        if (zasobySamochodu.pobierzPaliwo() <= 0 && !zasobySamochodu.czyJestOlej()) {
+            errorOutput = "Brak paliwa oraz oleju! Nie można uruchomić silnika.";
+        }
         if (zasobySamochodu.pobierzPaliwo() <= 0) {
             errorOutput = "Brak paliwa! Nie można uruchomić silnika.";
         } else if (!zasobySamochodu.czyJestOlej()) {
             errorOutput = "Brak oleju! Nie można uruchomić silnika.";
         } else {
             silnik.wlacz();
+            errorOutput = "Silnik wlaczony";
         }
     }
 
@@ -28,6 +36,7 @@ public class KontrolerSamochodu {
         stanSamochodu.ustawPredkosc(0);
         stanSamochodu.ustawPoruszanie(false);
         skrzyniaBiegow.ustawBieg(0);
+        errorOutput = "Silnik wylaczony";
     }
 
     public void zmienBieg(int bieg) {
@@ -43,6 +52,7 @@ public class KontrolerSamochodu {
     }
 
     public void przyspiesz(int przyrost) {
+        errorOutput = "";
         if (silnik.czyDziala() && skrzyniaBiegow.pobierzBieg() > 0) {
             int nowaPredkosc = stanSamochodu.pobierzPredkosc() + przyrost;
             int maksymalnaPredkosc = LIMITY_PREDKOSCI[skrzyniaBiegow.pobierzBieg()];
@@ -79,6 +89,7 @@ public class KontrolerSamochodu {
     }
 
     public void hamuj(int zmniejszenie) {
+        errorOutput = "";
         if (stanSamochodu.pobierzPredkosc() > 0) {
             int nowaPredkosc = stanSamochodu.pobierzPredkosc() - zmniejszenie;
             if (nowaPredkosc < 0) {
@@ -122,6 +133,61 @@ public class KontrolerSamochodu {
         zasobySamochodu.ustawOlej(true);
         System.out.println("Dolewano olej. Aktualny stan: " + (zasobySamochodu.czyJestOlej() ? "Jest olej" : "Brak oleju"));
         errorOutput = ("Dolewano olej. Aktualny stan: " + (zasobySamochodu.czyJestOlej() ? "Jest olej" : "Brak oleju"));
+    }
+    public void saveToJSON(String filePath) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filePath))) {
+            writer.write("{\n");
+            writer.write("\"silnik\": {\n");
+            writer.write("\"wlaczony\": " + silnik.czyDziala() + ",\n");
+            writer.write("\"obroty\": " + silnik.pobierzObroty() + "\n");
+            writer.write("},\n");
+            writer.write("\"skrzyniaBiegow\": {\n");
+            writer.write("\"bieg\": " + skrzyniaBiegow.pobierzBieg() + "\n");
+            writer.write("},\n");
+            writer.write("\"zasobySamochodu\": {\n");
+            writer.write("\"paliwo\": " + zasobySamochodu.pobierzPaliwo() + ",\n");
+            writer.write("\"olej\": " + zasobySamochodu.czyJestOlej() + "\n");
+            writer.write("},\n");
+            writer.write("\"stanSamochodu\": {\n");
+            writer.write("\"predkosc\": " + stanSamochodu.pobierzPredkosc() + ",\n");
+            writer.write("\"poruszaSie\": " + stanSamochodu.czyPoruszaSie() + "\n");
+            writer.write("}\n");
+            writer.write("}\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Deserializacja z JSON
+    public void loadFromJSON(String filePath) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                String value = line.substring(line.indexOf(":") + 1).trim().replace(",", "").replace("\"", "").replace("}", "");
+                if (line.startsWith("\"wlaczony\":")) {
+                    if (Boolean.parseBoolean(value)) {
+                        silnik.wlacz();
+                    } else {
+                        silnik.wylacz();
+                    }
+                } else if (line.startsWith("\"obroty\":")) {
+                    silnik.ustawObroty(Integer.parseInt(value));
+                } else if (line.startsWith("\"bieg\":")) {
+                    skrzyniaBiegow.ustawBieg(Integer.parseInt(value));
+                } else if (line.startsWith("\"paliwo\":")) {
+                    zasobySamochodu.dolejPaliwo(Integer.parseInt(value));  // Zakładając istnienie metody ustawPaliwo
+                } else if (line.startsWith("\"olej\":")) {
+                    zasobySamochodu.ustawOlej(Boolean.parseBoolean(value));
+                } else if (line.startsWith("\"predkosc\":")) {
+                    stanSamochodu.ustawPredkosc(Integer.parseInt(value));
+                } else if (line.startsWith("\"poruszaSie\":")) {
+                    stanSamochodu.ustawPoruszanie(Boolean.parseBoolean(value));
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();  // Rozważ użycie loggera lub informowanie użytkownika GUI
+        }
     }
 }
 
